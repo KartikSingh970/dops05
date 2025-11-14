@@ -1,16 +1,8 @@
-variable "resource_group_name" {
-  type = string
-}
+variable "region" {}
 
-variable "location" {
-  type = string
-}
+variable "project_name" {}
 
-variable "tags" {
-  type    = map(string)
-  default = {}
-}
+variable "instance_type" {}
 
-variable "acr_name" {
-  type = string
-}
+variable "public_key_path" {}
+
