@@ -5,12 +5,12 @@ variable "aws_region" {
 
 variable "aws_account_id" {
   type        = string
-  description = "AWS Account ID (used for ECR URLs)"
+  description = "AWS ID"
 }
 
 variable "key_name" {
   type        = string
-  description = "Existing EC2 key pair name to allow SSH (must exist in the region)"
+  description = "Keypair"
 }
 
 variable "allowed_ssh_cidr" {
@@ -37,11 +37,11 @@ variable "public_subnet_cidr" {
 
 variable "frontend_repo_name" {
   type    = string
-  default = "Stock-frontend"
+  default = "stock-frontend"
 }
 
 variable "backend_repo_name" {
   type    = string
-  default = "Stock-backend"
+  default = "stock-backend"
 }
 
