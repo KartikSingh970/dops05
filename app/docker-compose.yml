@@ -34,16 +34,14 @@ services:
       - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev)($|/)"'
 
   cadvisor:
-    image: gcr.io/google-containers/cadvisor:latest
-    container_name: cadvisor
-    restart: always
-    network_mode: bridge
-    ports:
-      - "8080:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
+  image: gcr.io/google-containers/cadvisor:latest
+  container_name: cadvisor
+  restart: always
+  network_mode: host
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
 
   prometheus:
     image: prom/prometheus:latest
