@@ -1,39 +1,81 @@
-name: CI Pipeline
+name: StockPRO CI/CD Pipeline
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
 
 jobs:
-  build-scan-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-south-1
+      ECR_FRONTEND_URI: ${{ secrets.ECR_FRONTEND_URI }}
+      ECR_BACKEND_URI: ${{ secrets.ECR_BACKEND_URI }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Install dependencies (frontend)
-        working-directory: ./app/frontend
-        run: npm install
-
-      - name: Install dependencies (backend)
-        working-directory: ./app/backend
-        run: npm install
-
-      - name: Build Docker images with build args
-        run: |
-          docker build -t stock-frontend ./app/frontend
-
-
-          docker build -t vanshp17/stock-backend:latest ./app/backend
-
-      - name: DockerHub Login
-        uses: docker/login-action@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Push images
+      - name: Login to ECR
         run: |
-          docker push vanshp17/stock-frontend:latest
-          docker push vanshp17/stock-backend:latest
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_FRONTEND_URI
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_BACKEND_URI
+
+      - name: Build frontend Docker image
+        run: docker build -t $ECR_FRONTEND_URI:latest ./frontend
+
+      - name: Trivy scan frontend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: $ECR_FRONTEND_URI:latest
+          format: 'table'
+          exit-code: '1'
+
+      - name: Push frontend image to ECR
+        run: docker push $ECR_FRONTEND_URI:latest
+
+      - name: Build backend Docker image
+        run: docker build -t $ECR_BACKEND_URI:latest ./backend
+
+      - name: Trivy scan backend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: $ECR_BACKEND_URI:latest
+          format: 'table'
+          exit-code: '1'
+
+      - name: Push backend image to ECR
+        run: docker push $ECR_BACKEND_URI:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd ~/dops05/app
+            docker compose pull
+            docker compose up -d --build
+
+      - name: Notify failure via email
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "StockPRO CI/CD Pipeline Failed"
+          body: "One of the steps failed. Check the Actions logs."
+          to: ${{ secrets.EMAIL_USERNAME }}
+          from: ${{ secrets.EMAIL_USERNAME }}
