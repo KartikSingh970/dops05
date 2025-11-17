@@ -50,8 +50,10 @@ jobs:
 
     - name: Install Trivy
       run: |
-        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
-        sudo mv ./bin/trivy /usr/local/bin/
+        sudo apt-get update
+        sudo apt-get install -y wget
+        wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.67.2_Linux-64bit.deb
+        sudo dpkg -i trivy_0.67.2_Linux-64bit.deb
 
     - name: Trivy Scan Frontend
       run: trivy image --exit-code 1 --severity HIGH,CRITICAL $ECR_FRONTEND_URI:latest
