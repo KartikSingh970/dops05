@@ -58,6 +58,8 @@ jobs:
       run: trivy image --exit-code 1 --severity HIGH,CRITICAL $ECR_FRONTEND_URI:latest
 
     - name: Trivy Scan Backend
+      env:
+        TRIVY_DISABLE_VEX_NOTICE: true
       run: trivy image --exit-code 1 --severity HIGH,CRITICAL --ignorefile ./app/backend/.trivyignore ${{ secrets.ECR_BACKEND_URI }}:latest
 
     - name: Deploy to EC2
