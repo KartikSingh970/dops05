@@ -69,3 +69,4 @@ jobs:
           cd ~/dops05/app
           docker compose pull
           docker compose up -d --build
+
