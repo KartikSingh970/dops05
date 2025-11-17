@@ -30,7 +30,7 @@ jobs:
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_BACKEND_URI
 
       - name: Build frontend Docker image
-        run: docker build -t $ECR_FRONTEND_URI:latest ./frontend
+        run: docker build -t ${{ secrets.ECR_FRONTEND_URI }}:latest ./app/frontend
 
       - name: Trivy scan frontend
         uses: aquasecurity/trivy-action@master
@@ -43,7 +43,7 @@ jobs:
         run: docker push $ECR_FRONTEND_URI:latest
 
       - name: Build backend Docker image
-        run: docker build -t $ECR_BACKEND_URI:latest ./backend
+        run: docker build -t ${{ secrets.ECR_BACKEND_URI }}:latest ./app/backend
 
       - name: Trivy scan backend
         uses: aquasecurity/trivy-action@master
