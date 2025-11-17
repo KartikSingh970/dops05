@@ -1,8 +1,9 @@
-version: "3.8"
-
 services:
   frontend:
-    image: 135976031386.dkr.ecr.ap-south-1.amazonaws.com/stock-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: stock-frontend-local:latest
     restart: always
     ports:
       - "80:80"
@@ -13,17 +14,20 @@ services:
     image: 135976031386.dkr.ecr.ap-south-1.amazonaws.com/stock-backend:latest
     restart: always
     ports:
-      - "5000:5000"
-      
+      - "5008:5008"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/stockdb
+    depends_on:
+      - mongo
+
   mongo:
     image: mongo:5
     container_name: mongo
     restart: always
     ports:
-      - "9100:9100"
+      - "27017:27017"
     volumes:
-      -mongo-data:/data/db
-
+      - mongo-data:/data/db
 
   node-exporter:
     image: prom/node-exporter:latest
@@ -43,21 +47,20 @@ services:
       - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev)($|/)"'
 
   cadvisor:
-  image: gcr.io/google-containers/cadvisor:latest
-  container_name: cadvisor
-  restart: always
-  network_mode: host
-  volumes:
-    - /var/run/docker.sock:/var/run/docker.sock:ro
-    - /sys:/sys:ro
-    - /var/lib/docker/:/var/lib/docker:ro
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: always
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
 
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     restart: always
-    ports:
-      - "9090:9090"
+    network_mode: host
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
@@ -76,4 +79,5 @@ services:
 volumes:
   prometheus-data:
   grafana-data:
+  mongo-data:
 
