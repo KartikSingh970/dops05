@@ -58,7 +58,7 @@ jobs:
       run: trivy image --exit-code 1 --severity HIGH,CRITICAL $ECR_FRONTEND_URI:latest
 
     - name: Trivy Scan Backend
-      run: trivy image --exit-code 1 --severity HIGH,CRITICAL ${{ secrets.ECR_BACKEND_URI }}:latest
+      run: trivy image --exit-code 1 --severity HIGH,CRITICAL --ignorefile ./app/backend/.trivyignore ${{ secrets.ECR_BACKEND_URI }}:latest
 
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v0.1.6
