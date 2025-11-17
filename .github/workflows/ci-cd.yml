@@ -33,11 +33,7 @@ jobs:
         run: docker build -t ${{ secrets.ECR_FRONTEND_URI }}:latest ./app/frontend
 
       - name: Trivy scan frontend
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: $ECR_FRONTEND_URI:latest
-          format: 'table'
-          exit-code: '1'
+        run: trivy image --exit-code 1 --severity HIGH,CRITICAL ${{ secrets.ECR_FRONTEND_URI }}:latest
 
       - name: Push frontend image to ECR
         run: docker push $ECR_FRONTEND_URI:latest
@@ -46,11 +42,7 @@ jobs:
         run: docker build -t ${{ secrets.ECR_BACKEND_URI }}:latest ./app/backend
 
       - name: Trivy scan backend
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: $ECR_BACKEND_URI:latest
-          format: 'table'
-          exit-code: '1'
+        run: trivy image --exit-code 1 --severity HIGH,CRITICAL ${{ secrets.ECR_BACKEND_URI }}:latest
 
       - name: Push backend image to ECR
         run: docker push $ECR_BACKEND_URI:latest
