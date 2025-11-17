@@ -9,8 +9,10 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      AWS_REGION: ap-south-1
-      AWS_DEFAULT_REGION: ap-south-1
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+      ECR_FRONTEND_URI: ${{ secrets.ECR_FRONTEND_URI }}
+      ECR_BACKEND_URI: ${{ secrets.ECR_BACKEND_URI }}
 
     steps:
     - name: Checkout Repo
@@ -24,38 +26,28 @@ jobs:
         aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Login to Amazon ECR
-      env:
-        ECR_FRONTEND_URI: ${{ secrets.ECR_FRONTEND_URI }}
-        ECR_BACKEND_URI: ${{ secrets.ECR_BACKEND_URI }}
       run: |
-        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin "$ECR_FRONTEND_URI"
-        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin "$ECR_BACKEND_URI"
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_FRONTEND_URI
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_BACKEND_URI
 
     - name: Build Frontend Image
-      env:
-        ECR_FRONTEND_URI: ${{ secrets.ECR_FRONTEND_URI }}
-      run: docker build -t "$ECR_FRONTEND_URI:latest" ./app/frontend
+      run: docker build -t $ECR_FRONTEND_URI:latest ./app/frontend
 
     - name: Push Frontend Image to ECR
-      env:
-        ECR_FRONTEND_URI: ${{ secrets.ECR_FRONTEND_URI }}
-      run: docker push "$ECR_FRONTEND_URI:latest"
+      run: docker push $ECR_FRONTEND_URI:latest
 
     - name: Build Backend Image
-      env:
-        ECR_BACKEND_URI: ${{ secrets.ECR_BACKEND_URI }}
       run: |
-        if [ -z "$ECR_BACKEND_URI" ]; then
-          echo "ERROR: ECR_BACKEND_URI secret is empty!"
-          exit 1
-        fi
-        echo "Building backend image..."
-        docker build -t "$ECR_BACKEND_URI:latest" ./app/backend
+        BACKEND_IMAGE="$ECR_BACKEND_URI"
+        BACKEND_IMAGE=$(echo "$BACKEND_IMAGE" | tr -d '\r\n')  # remove any hidden newlines
+        echo "Building backend image: $BACKEND_IMAGE:latest"
+        docker build -t "$BACKEND_IMAGE:latest" ./app/backend
 
     - name: Push Backend Image to ECR
-      env:
-        ECR_BACKEND_URI: ${{ secrets.ECR_BACKEND_URI }}
-      run: docker push "$ECR_BACKEND_URI:latest"
+      run: |
+        BACKEND_IMAGE="$ECR_BACKEND_URI"
+        BACKEND_IMAGE=$(echo "$BACKEND_IMAGE" | tr -d '\r\n')
+        docker push "$BACKEND_IMAGE:latest"
 
     - name: Install Trivy
       run: |
@@ -63,14 +55,13 @@ jobs:
         sudo mv trivy /usr/local/bin/
 
     - name: Trivy Scan Frontend
-      env:
-        ECR_FRONTEND_URI: ${{ secrets.ECR_FRONTEND_URI }}
-      run: trivy image --exit-code 1 --severity HIGH,CRITICAL "$ECR_FRONTEND_URI:latest"
+      run: trivy image --exit-code 1 --severity HIGH,CRITICAL $ECR_FRONTEND_URI:latest
 
     - name: Trivy Scan Backend
-      env:
-        ECR_BACKEND_URI: ${{ secrets.ECR_BACKEND_URI }}
-      run: trivy image --exit-code 1 --severity HIGH,CRITICAL "$ECR_BACKEND_URI:latest"
+      run: |
+        BACKEND_IMAGE="$ECR_BACKEND_URI"
+        BACKEND_IMAGE=$(echo "$BACKEND_IMAGE" | tr -d '\r\n')
+        trivy image --exit-code 1 --severity HIGH,CRITICAL "$BACKEND_IMAGE:latest"
 
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v0.1.6
@@ -82,4 +73,3 @@ jobs:
           cd ~/dops05/app
           docker compose pull
           docker compose up -d --build
-
