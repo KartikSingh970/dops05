@@ -37,7 +37,13 @@ jobs:
       run: docker push ${{ secrets.ECR_FRONTEND_URI }}:latest
 
     - name: Build Backend Image
-      run: docker build -t ${{ secrets.ECR_BACKEND_URI }}:latest ./app/backend
+      run: |
+        if [ -z "${{ secrets.ECR_BACKEND_URI }}" ]; then
+          echo "ERROR: ECR_BACKEND_URI secret is empty!"
+          exit 1
+        fi
+        echo "Building backend image..."
+        docker build -t "${{ secrets.ECR_BACKEND_URI }}:latest" ./app/backend
 
     - name: Push Backend Image to ECR
       run: docker push ${{ secrets.ECR_BACKEND_URI }}:latest
