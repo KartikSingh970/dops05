@@ -71,7 +71,7 @@ jobs:
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ubuntu
-        key: ${{ secrets.EC2_PEM }}
+        key: ${{ secrets.EC2_PRIVATE_KEY }}
         script: |
           cd ~/dops05/app
           docker compose pull
