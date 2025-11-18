@@ -61,7 +61,10 @@ jobs:
     - name: Trivy Scan Backend
       env:
         TRIVY_DISABLE_VEX_NOTICE: true
-      run: trivy image --exit-code 1 --severity HIGH,CRITICAL --ignorefile ./app/backend/.trivyignore "$ECR_BACKEND_URI:latest"
+      run: |
+        BACKEND_IMAGE=$(echo "$ECR_BACKEND_URI" | tr -d '\r\n')
+        echo "Scanning backend image: $BACKEND_IMAGE:latest"
+        trivy image --exit-code 1 --severity HIGH,CRITICAL --ignorefile ./app/backend/.trivyignore "$BACKEND_IMAGE:latest"
 
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v0.1.6
