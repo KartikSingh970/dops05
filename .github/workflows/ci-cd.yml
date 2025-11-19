@@ -27,8 +27,8 @@ jobs:
 
     - name: Login to Amazon ECR
       run: |
-        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_FRONTEND_URI
-        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_BACKEND_URI
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin "$ECR_FRONTEND_URI"
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin "$ECR_BACKEND_URI"
 
     - name: Build Frontend Image
       run: docker build -t "$ECR_FRONTEND_URI:latest" ./app/frontend
@@ -37,10 +37,16 @@ jobs:
       run: docker push "$ECR_FRONTEND_URI:latest"
 
     - name: Build Backend Image
-      run: docker build -t "$ECR_BACKEND_URI:latest" ./app/backend
+      run: |
+        BACKEND_IMAGE=$(echo "$ECR_BACKEND_URI" | tr -d '\r\n')
+        echo "Building backend image: $BACKEND_IMAGE:latest"
+        docker build -t "$BACKEND_IMAGE:latest" ./app/backend
 
     - name: Push Backend Image to ECR
-      run: docker push "$ECR_BACKEND_URI:latest"
+      run: |
+        BACKEND_IMAGE=$(echo "$ECR_BACKEND_URI" | tr -d '\r\n')
+        echo "Pushing backend image: $BACKEND_IMAGE:latest"
+        docker push "$BACKEND_IMAGE:latest"
 
     - name: Install Trivy
       run: |
@@ -55,14 +61,17 @@ jobs:
     - name: Trivy Scan Backend
       env:
         TRIVY_DISABLE_VEX_NOTICE: true
-      run: trivy image --exit-code 1 --severity HIGH,CRITICAL --ignorefile ./app/backend/.trivyignore "$ECR_BACKEND_URI:latest"
+      run: |
+        BACKEND_IMAGE=$(echo "$ECR_BACKEND_URI" | tr -d '\r\n')
+        echo "Scanning backend image: $BACKEND_IMAGE:latest"
+        trivy image --exit-code 1 --severity HIGH,CRITICAL --ignorefile ./app/backend/.trivyignore "$BACKEND_IMAGE:latest"
 
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v0.1.6
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ubuntu
-        key: ${{ secrets.EC2_PEM }}
+        key: ${{ secrets.EC2_PRIVATE_KEY }}
         script: |
           cd ~/dops05/app
           docker compose pull
