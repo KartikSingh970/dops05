@@ -34,16 +34,21 @@ app.get("/", (req, res) => {
   res.send("Backend is running...");
 });
 
-app.post("/contact", async (req, res) => {
+app.post("/api/contact", async (req, res) => {
   try {
-o
-    const { name, email, message } = req.body;
+    const { name, email, phone, query } = req.body;
 
-    if (!name || !email || !message) {
+    if (!name || !email || !phone || !query) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    const newContact = new Contact({ name, email, message });
+    const newContact = new Contact({
+      name,
+      email,
+      message: query,   // save query into message field
+      phone: phone      // optional, add phone field to schema
+    });
+
     await newContact.save();
 
     res.status(200).json({ message: "Form submitted successfully" });
@@ -52,8 +57,4 @@ o
     res.status(500).json({ error: "Server error" });
   }
 });
-
-// Start server
-const PORT = 5008;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
